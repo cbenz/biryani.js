@@ -1,0 +1,27 @@
+{
+  "parser": "babel-eslint",
+  "rules": {
+    "camelcase": 0,
+    "comma-dangle": [1, "always-multiline"],
+    "max-len": [1, 120, 2],
+    "new-cap": [1, {
+      "capIsNewExceptions": ["List", "Map"]
+    }],
+    "no-underscore-dangle": 0,
+    "no-undef": 1,
+    "no-unused-expressions": 1,
+    "no-unused-vars": 1,
+    "no-use-before-define": [1, "nofunc"],
+    "quotes": [2, "double", "avoid-escape"],
+    "semi": [1, "never"],
+    "strict": 0
+  },
+  "ecmaFeatures": {
+    "modules": true
+  },
+  "env": {
+    "browser": true,
+    "es6": true,
+    "node": true
+  }
+}
