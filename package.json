@@ -1,18 +1,17 @@
 {
-  "name": "biryani",
+  "name": "biryani.js",
   "version": "0.0.0",
-  "description": "Biryani",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/cbenz/biryani.git"
+    "url": "https://github.com/cbenz/biryani.js.git"
   },
-  "author": "Christophe Benz",
-  "license": "AGPLv3",
+  "author": "Christophe Benz <christophe.benz@gmail.com>",
+  "license": "AGPL-3.0",
   "bugs": {
-    "url": "https://github.com/cbenz/biryani/issues"
+    "url": "https://github.com/cbenz/biryani.js/issues"
   },
   "devDependencies": {
     "babel": "^5.8.23",
