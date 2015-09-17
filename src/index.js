@@ -4,6 +4,11 @@ import t from "transducers.js"
 
 const logReducer = debug("biryani.js:reducer")
 
+const ERROR = "@@converter/error"
+const INIT = "@@transducer/init"
+const RESULT = "@@transducer/result"
+const STEP = "@@transducer/step"
+const VALUE = "@@converter/value"
 
 // Biryani helpers
 
@@ -12,47 +17,48 @@ export const identity = (x) => x
 
 export class Converted {
   constructor(value, error = null) {
-    this["@@converter/error"] = error
-    this["@@converter/value"] = value
+    this[ERROR] = error
+    this[VALUE] = value
   }
   unconvert(normalize = identity) {
     return normalize({
-      error: this["@@converter/error"],
-      value: this["@@converter/value"],
+      error: this[ERROR],
+      value: this[VALUE],
     })
   }
 }
 
 export const isConverted = (value) => value instanceof Converted
-export const ensureConverted = (value, error = null) => isConverted(value) ? value : new Converted(value, error)
+export const ensureConverted = (value, error) => isConverted(value) ? value : new Converted(value, error)
 export const ensureUnconverted = (value) => isConverted(value) ? value.unconvert() : {error: null, value}
 
-
-export const valuesAndErrorsReducer = () => {
+export const convertedReducer = (valueXform, errorXform) => {
   let indexCounter = 0
   const normalize = (accumulator) => {
-    const error = accumulator["@@converter/error"]
+    const error = accumulator[ERROR]
     if (Object.getOwnPropertyNames(error).length === 0) {
-      accumulator["@@converter/error"] = null
+      accumulator[ERROR] = null
     }
     return accumulator
   }
   return {
-    "@@transducer/init": () => {
-      const accumulator = new Converted([], {})
-      logReducer("@@transducer/init returns", accumulator)
+    [INIT]: () => {
+      const value = valueXform[INIT]()
+      const error = errorXform[INIT]()
+      const accumulator = new Converted(value, error)
+      logReducer(INIT, "returns", accumulator)
       return accumulator
     },
-    "@@transducer/result": (accumulator) => normalize(accumulator),
-    "@@transducer/step": (accumulator, stepValue) => {
-      logReducer("@@transducer/step", indexCounter, accumulator, stepValue)
+    [RESULT]: (accumulator) => normalize(accumulator),
+    [STEP]: (accumulator, stepValue) => {
+      logReducer(STEP, indexCounter, accumulator, stepValue)
       const {error, value} = stepValue.unconvert()
-      accumulator["@@converter/value"].push(value)
+      valueXform[STEP](accumulator[VALUE], value)
       if (error) {
-        accumulator["@@converter/error"][indexCounter] = error
+        errorXform[STEP](accumulator[ERROR], [indexCounter, error])
       }
       indexCounter++
-      logReducer("@@transducer/step returns", accumulator)
+      logReducer(STEP, "returns", accumulator)
       return accumulator
     },
   }
@@ -62,13 +68,15 @@ export const valuesAndErrorsReducer = () => {
 // Biryani composed converters
 
 // TODO Extract t.transduce from uniformSequence
-export const uniformSequence = (xform) => (sequence) => t.transduce(sequence, t.map(xform), valuesAndErrorsReducer())
+export const uniformSequence = (xform) => (sequence) => sequence !== null ?
+  t.transduce(sequence, t.map(xform), convertedReducer(t.arrayReducer, t.objReducer)) :
+  ensureConverted(null, null)
 
 
 // Biryani converters
 
 export const test = (predicate, error = "test failed") => (value) =>
-  ensureConverted(value, predicate(value) ? null : error)
+  ensureConverted(value, value === null || predicate(value) ? null : error)
 
 
 // Validators

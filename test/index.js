@@ -14,8 +14,12 @@ import * as b from "../src/index"
 
 describe("isInteger", () => {
   it(
+    "should return the input value when the value is null",
+    () => expect(b.isInteger(null)).toEqual(b.ensureConverted(null, null))
+  )
+  it(
     "should return the input value when the value is an integer",
-    () => expect(b.isInteger(1)).toEqual(b.ensureConverted(1))
+    () => expect(b.isInteger(1)).toEqual(b.ensureConverted(1, null))
   )
   it(
     "should return an error when the value is not an integer",
@@ -29,8 +33,17 @@ describe("isInteger", () => {
 
 describe("uniformSequence(isInteger)", () => {
   it(
+    "should return the input value when the value is null",
+    () => expect(b.uniformSequence(b.isInteger)(null)).toEqual(b.ensureConverted(null, null))
+  )
+  it(
+    "should return the input value when the value is an empty array",
+    () => expect(b.uniformSequence(b.isInteger)([])).toEqual(b.ensureConverted([], null))
+  )
+  it(
     "should return the input value when the value is an array of integers",
-    () => expect(b.uniformSequence(b.isInteger)([1, 2])).toEqual(b.ensureConverted([1, 2]))
+    () => expect(b.uniformSequence(b.isInteger)([1, 2])).toEqual(b.ensureConverted([1, 2], null))
+
   )
   it(
     "should return an error when some values in the array are not integers",
