@@ -2,7 +2,10 @@
   "name": "biryani.js",
   "version": "0.0.0",
   "scripts": {
-    "start": "DEBUG=biryani.js:* node index.js"
+    "check": "npm run lint; npm run test",
+    "lint": "eslint src test",
+    "start": "node index.js",
+    "test": "mocha --compilers js:babel/register --recursive"
   },
   "repository": {
     "type": "git",
@@ -16,7 +19,9 @@
   "devDependencies": {
     "babel": "^5.8.23",
     "babel-eslint": "^4.1.2",
-    "eslint": "^1.4.3"
+    "eslint": "^1.4.3",
+    "expect": "^1.10.0",
+    "mocha": "^2.3.2"
   },
   "dependencies": {
     "debug": "^2.2.0",
