@@ -2,7 +2,7 @@
   "name": "biryani.js",
   "version": "0.0.0",
   "scripts": {
-    "start": "node index.js"
+    "start": "DEBUG=biryani.js:* node index.js"
   },
   "repository": {
     "type": "git",
@@ -19,6 +19,7 @@
     "eslint": "^1.4.1"
   },
   "dependencies": {
+    "debug": "^2.2.0",
     "transducers.js": "^0.3.2"
   }
 }
