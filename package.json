@@ -1,10 +1,11 @@
 {
   "name": "biryani.js",
   "version": "0.0.0",
+  "main": "./src/index.js",
   "scripts": {
     "check": "npm run lint; npm run test",
     "lint": "eslint src test",
-    "start": "node index.js",
+    "start": "babel-node src/index.js",
     "test": "mocha --compilers js:babel/register --recursive"
   },
   "repository": {
