@@ -67,16 +67,28 @@ export const convertedReducer = (valueXform, errorXform) => {
 
 // Biryani composed converters
 
+export const stopNullValue = (value, converter) => value === null ? ensureConverted(null, null) : converter(value)
+
 // TODO Extract t.transduce from uniformSequence
-export const uniformSequence = (xform) => (sequence) => sequence !== null ?
-  t.transduce(sequence, t.map(xform), convertedReducer(t.arrayReducer, t.objReducer)) :
-  ensureConverted(null, null)
+// export const uniformSequence = (itemXform) => (sequence) =>
+//   t.transduce(sequence, t.map(itemXform), convertedReducer(t.arrayReducer, t.objReducer))
+
+// export const uniformSequence = (itemXform) => (sequence) => sequence !== null ?
+//   t.transduce(sequence, t.map(itemXform), convertedReducer(t.arrayReducer, t.objReducer)) :
+//   ensureConverted(null, null)
+
+export const uniformSequence = (itemXform) => (sequence) => stopNullValue(
+  sequence,
+  (sequence) => t.transduce(sequence, t.map(itemXform), convertedReducer(t.arrayReducer, t.objReducer)),
+)
 
 
 // Biryani converters
 
-export const test = (predicate, error = "test failed") => (value) =>
-  ensureConverted(value, value === null || predicate(value) ? null : error)
+export const test = (predicate, error = "test failed") => (value) => stopNullValue(
+  value,
+  (value) => ensureConverted(value, predicate(value) ? null : error),
+)
 
 
 // Validators
