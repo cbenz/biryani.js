@@ -42,8 +42,6 @@ export const convertedReducer = (xfValue, xfError) => {
     return accumulator
   }
   return {
-    // TODO Implement with classes!
-    [NAME]: "convertedReducer",
     [INIT]: () => {
       const value = xfValue[INIT]()
       const error = xfError[INIT]()
@@ -62,6 +60,7 @@ export const convertedReducer = (xfValue, xfError) => {
       xfValue[STEP](accumulator[VALUE], input[VALUE])
       const error = input[ERROR]
       if (error) {
+        debugger
         xfError[STEP](accumulator[ERROR], [indexCounter, error])
       }
       indexCounter++
@@ -75,14 +74,7 @@ export const convertedReducer = (xfValue, xfError) => {
 // Biryani composed converters
 
 export const arrayConvertedReducer = () => convertedReducer(t.arrayReducer, t.objReducer)
-
-// export const converter = (xf1, xf2) => {
-//   if (xf2[NAME] !== "convertedReducer") {
-//     xf2 = convertedReducer(xf2)
-//   }
-//   return xf1(xf2)
-// }
-// export const map = (f) => (xf) => converter(t.map(f), xf)
+export const objectConvertedReducer = () => convertedReducer(t.objReducer, t.objReducer)
 
 export const map = (f) => (xf) => t.map((value) => value === null ? null : f(value))(xf)
 
@@ -93,15 +85,26 @@ export const map = (f) => (xf) => t.map((value) => value === null ? null : f(val
 
 export const test = (predicate, error = "test failed") => (value) =>
   converted(value, value === null ? null : predicate(value) ? null : error)
+// export const test = (predicate, error = "test failed") => t.transformer(
+//   (value) => converted(value, value === null ? null : predicate(value) ? null : error)
+// )
 export const testInteger = test(Number.isInteger, "not an integer")
+
+export const isObject = (x) => x instanceof Object && Object.getPrototypeOf(x) === Object.getPrototypeOf({})
 
 export const convert = (value, xf) => {
   if (value === null) {
     return converted(null, null)
   }
-  // TOOD Set reducer according to value type
-  const reducer = arrayConvertedReducer()
-  return t.transduce(value, xf, reducer)
+  // TOOD Set reducer according to value type (array, object)
+  if (Array.isArray(value)) {
+    return t.transduce(value, xf, arrayConvertedReducer())
+  } else if (isObject(value)) {
+    return t.transduce(value, xf, objectConvertedReducer())
+  } else {
+    // return xf[STEP](value)
+    return xf(value)
+  }
 }
 
 export class ConversionError extends Error {
@@ -113,12 +116,10 @@ export class ConversionError extends Error {
 
 export const convertOrThrow = (value, xf) => {
   const converted = convert(value, xf)
+  debugger
   if (converted[ERROR]) {
     throw new ConversionError(converted)
   } else {
     return converted[VALUE]
   }
 }
-
-
-// console.log(convert([[null]], map(map(testInteger))))
