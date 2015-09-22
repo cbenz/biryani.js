@@ -1,5 +1,7 @@
 module.exports = {
-  entry: "./src/index.js",
+  // devtool: "eval", // Transformed code
+  devtool: "source-map", // Original code
+  entry: "./src/browser.js",
   output: {
     filename: "biryani.js",
   },
