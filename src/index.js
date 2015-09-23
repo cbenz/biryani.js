@@ -98,7 +98,7 @@ export const objectConvertedReducer = () => convertedReducer(t.objReducer, t.obj
 export const seq = (coll, xf, {valueOnly = false} = {}) => {
   let converted
   if (Array.isArray(coll)) {
-    converted =t.transduce(coll, xf, arrayConvertedReducer())
+    converted = t.transduce(coll, xf, arrayConvertedReducer())
   } else if (isObject(coll)) {
     converted = t.transduce(coll, xf, objectConvertedReducer())
   } else {
@@ -137,7 +137,7 @@ export const map = (f) => (xf) => ({
 
 // Scalar converters
 
-export const test = (predicate, error = "test failed") => (value) => converted(value, predicate(value) ? null : error)
+export const test = (predicate, error = "Test failed") => (value) => converted(value, predicate(value) ? null : error)
 export const testInteger = test(Number.isInteger, "Not an integer")
 export const testPropertyEquals = (propName, expectedValue, error = `value[${propName}] != ${expectedValue}`) =>
   test((value) => value[propName] == expectedValue, error)
