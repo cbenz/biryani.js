@@ -4,7 +4,7 @@ import t from "transducers.js"
 import * as b from "../src/index"
 
 
-describe("Transducer extensions", () =>
+describe("Transducer extension", () =>
   describe("seq", () => {
     it("should not be callable with scalars", () => {
       expect(() => b.seq(null, b.testInteger)).toThrow(TypeError)
@@ -23,21 +23,32 @@ describe("Transducer extensions", () =>
       )
       expect(b.seq([0, 1], testIntegerAndEven)).toEqual(b.converted([0, 1], {"1": "Not an even number"}))
     })
+    it("should be used with objects", () => {
+      const person = {age: "Bob", weight: 20}
+      const testKey = b.test((value) => value.length > 3, "value.length > 3 required")
+      expect(b.seq(person, b.map(([k, v]) => [testKey(k), b.testInteger(v)])))
+        .toEqual(b.converted(person, {"age": {"k": "value.length > 3 required", "v": "Not an integer"}}))
+    })
+    // it("should be used with objects with null values", () => {
+    //   const person = {age: 15, weight: 20, city: null}
+    //   expect(b.seq(person, b.map(([k, v]) => [k, b.testInteger(v)]))).toEqual(b.converted(person, null))
+    // })
     it("should be used at different levels of depth", () => {
       const points = [[1, 2], null, [3, "x"]]
       expect(b.seq(points, b.map((point) => b.seq(point, b.map(b.testInteger)))))
         .toEqual(b.converted(points, {"2": {"1": "Not an integer"}}))
+      // TODO Add nested objects
     })
     it("should be used at different levels of depth with t.compose", () => {
       expect(b.seq([[1, 2], null, [3, "x"]], t.compose(
-        b.map(b.testLengthOf(2)),
+        b.map(b.testLength(2)),
         b.map((point) => b.seq(point, t.compose(b.map(b.testInteger), b.map(b.add(1))))),
       ))).toEqual(b.converted([[2, 3], null, [4, "x"]], {"2": {"1": "Not an integer"}}))
     })
   })
 )
 
-describe("Scalar converters", () =>
+describe("Scalar converter", () =>
   describe("testInteger", () => {
     it("should be ok with integers", () => {
       expect(b.testInteger(0)).toEqual(b.converted(0, null))
@@ -59,7 +70,7 @@ describe("Scalar converters", () =>
   })
 )
 
-describe("Compound converters", () => {
+describe("Compound converter", () => {
   describe("map", () => {
     it("should be ok with empty array",
       () => expect(b.seq([], b.map(b.testInteger))).toEqual(b.converted([], null))
@@ -77,10 +88,18 @@ describe("Compound converters", () => {
         .toEqual(b.converted([1, null, "x"], {"2": "Not an integer"}))
     })
   })
+  describe("mapkv", () => {
+    it("should be ok", () => {
+      const person = {age: "Bob", weight: 20}
+      expect(b.seq(person, b.mapkv(b.identity, b.testInteger)))
+        .toEqual(b.converted(person, {"age": {"v": "Not an integer"}}))
+    })
+  })
   describe("mapseq", () => {
-    it("should be ok ", () => {
+    it("should return a compound error", () => {
       const points = [[1, 2], null, [3, "x"]]
-      expect(b.seq(points, b.mapseq(b.map(b.testInteger)))).toEqual(b.converted(points, {"2": {"1": "Not an integer"}}))
+      expect(b.seq(points, b.mapseq(b.map(b.testInteger))))
+        .toEqual(b.converted(points, {"2": {"1": "Not an integer"}}))
     })
   })
 })

@@ -1,9 +1,12 @@
 module.exports = {
   // devtool: "eval", // Transformed code
   devtool: "source-map", // Original code
-  entry: "./src/browser.js",
+  entry: {
+    browser: "./src/browser.js",
+    test: "mocha!./test/index.js",
+  },
   output: {
-    filename: "biryani.js",
+    filename: "[name].js",
   },
   module: {
     loaders: [

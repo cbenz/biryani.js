@@ -51,58 +51,73 @@ export const converted = (value, error = null) => new Converted(value, error)
 export const isConverted = (value) => value instanceof Converted
 export const ensureConverted = (value) => isConverted(value) ? value : converted(value)
 
-export const convertedReducer = (xfValue, xfError) => {
-  if (!xfError) {
-    // TODO Set according to xfValue
-    xfError = t.objReducer
-  }
+export const arrayConvertedReducer = (xfError) => {
   let indexCounter = 0
-  const normalize = (accumulator) => {
-    const error = accumulator[ERROR]
-    if (Object.getOwnPropertyNames(error).length === 0) {
-      accumulator[ERROR] = null
-    }
-    return accumulator
-  }
   return {
     [INIT]: () => {
-      const value = xfValue[INIT]()
+      const value = t.arrayReducer[INIT]()
       const error = xfError[INIT]()
       const accumulator = converted(value, error)
-      logXf(INIT, "returns", accumulator)
+      logXf("%s returns %j", INIT, accumulator)
       return accumulator
     },
-    [RESULT]: (accumulator) => {
-      const result = normalize(accumulator)
-      logXf(RESULT, "returns", result)
-      return result
-    },
+    [RESULT]: identity,
     [STEP]: (accumulator, input) => {
-      logXf(STEP, indexCounter, accumulator, input)
+      logXf("%s(%s) accumulator: %j input: %j", STEP, indexCounter, accumulator, input)
       input = ensureConverted(input)
-      xfValue[STEP](accumulator[VALUE], input[VALUE])
+      t.arrayReducer[STEP](accumulator[VALUE], input[VALUE])
       const error = input[ERROR]
       if (error) {
         xfError[STEP](accumulator[ERROR], [indexCounter, error])
       }
       indexCounter++
-      logXf(STEP, "returns", accumulator)
+      logXf("%s(%s) returns %j", STEP, indexCounter, accumulator)
       return accumulator
     },
   }
 }
 
-export const arrayConvertedReducer = () => convertedReducer(t.arrayReducer, t.objReducer)
-export const objectConvertedReducer = () => convertedReducer(t.objReducer, t.objReducer)
+export const objectConvertedReducer = (xfError) => {
+  return {
+    [INIT]: () => {
+      const value = t.objReducer[INIT]()
+      const error = xfError[INIT]()
+      const accumulator = converted(value, error)
+      logXf("%s returns %j", INIT, accumulator)
+      return accumulator
+    },
+    [RESULT]: identity,
+    [STEP]: (accumulator, kv) => {
+      logXf("%s accumulator: %j kv: %j", STEP, accumulator, kv)
+      kv = t.transduce(kv, arrayConvertedReducer, t.arrayReducer)
+      t.objReducer[STEP](accumulator[VALUE], kv[VALUE])
+      const error = kv[ERROR]
+      if (error.length !== 0) {
+        xfError[STEP](
+          accumulator[ERROR],
+          [
+            kv[VALUE][0],
+            t.transduce(error, t.map(([k, v]) => [k === 0 ? "k" : "v", v]), t.objReducer),
+          ]
+        )
+      }
+      logXf("%s returns %j", STEP, accumulator)
+      return accumulator
+    },
+  }
+}
 
 export const seq = (coll, xf, {valueOnly = false} = {}) => {
   let converted
   if (isArray(coll)) {
-    converted = t.transduce(coll, xf, arrayConvertedReducer())
+    converted = t.transduce(coll, xf, arrayConvertedReducer(t.objReducer))
   } else if (isObject(coll)) {
-    converted = t.transduce(coll, xf, objectConvertedReducer())
+    converted = t.transduce(coll, xf, objectConvertedReducer(t.objReducer))
   } else {
     throw new TypeError(`Unsupported collection ${coll}`)
+  }
+  if (Object.getOwnPropertyNames(converted[ERROR]).length === 0) {
+    converted[ERROR] = null
   }
   if (valueOnly) {
     if (converted[ERROR]) {
@@ -119,21 +134,19 @@ export const seq = (coll, xf, {valueOnly = false} = {}) => {
 // Compound converters
 
 export const map = (f) => (xf) => ({
-  [INIT]: () => xf[INIT](),
-  [RESULT]: (accumulator) => xf[RESULT](accumulator),
-  [STEP]: (accumulator, input) => {
+  [INIT]: xf::xf[INIT],
+  [RESULT]: xf::xf[RESULT],
+  [STEP](accumulator, input) {
     input = ensureConverted(input)
     xf[STEP](accumulator, input[ERROR] ? input : (
-      input[VALUE] === null ? null : f(input[VALUE])
+      input[VALUE] === null ? null : this::f(input[VALUE])
     ))
     return accumulator
   },
 })
 
+export const mapkv = (fk, fv) => map(([k, v]) => [fk(k), fv(v)])
 export const mapseq = (xf) => map((value) => seq(value, xf))
-
-// TODO
-// export const byKey = (f) => (xf) => converter(t.map(f), xf)
 
 
 // Scalar converters
@@ -142,4 +155,4 @@ export const test = (predicate, error = "Test failed") => (value) => converted(v
 export const testInteger = test(Number.isInteger, "Not an integer")
 export const testPropertyEquals = (propName, expectedValue, error = `value[${propName}] != ${expectedValue}`) =>
   test((value) => value[propName] == expectedValue, error)
-export const testLengthOf = (length) => testPropertyEquals("length", length, `value.length != ${length}`)
+export const testLength = (length) => testPropertyEquals("length", length, `value.length != ${length}`)

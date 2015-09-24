@@ -1,11 +1,14 @@
 import t from "transducers.js"
 
-import * as b from "./index"
+import * as b from "../src/index"
+
+localStorage.debug = "biryani.js:*,transducers.js:*"
 
 
-// Drafts
-
-localStorage.debug = "biryani.js:*,transducers.js:*" // eslint-disable-line
+// Code to be executed in browser console, see README.md
 
 console.log(t)
 console.log(b)
+
+const person = {age: "Bob", weight: 20}
+console.log(b.seq(person, b.mapkv(b.identity, b.testInteger)))

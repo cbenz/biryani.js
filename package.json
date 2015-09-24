@@ -4,11 +4,11 @@
   "main": "./src/index.js",
   "scripts": {
     "check": "npm run lint; npm run test",
-    "dev": "webpack-dev-server --progress --colors",
+    "dev": "webpack-dev-server --colors",
     "lint": "eslint src test",
     "start": "babel-node src/index.js",
     "start:debug": "DEBUG=biryani.js:* npm start",
-    "test": "mocha --compilers js:babel/register --recursive test",
+    "test": "mocha --compilers js:babel/register --recursive",
     "test:debug": "DEBUG=biryani.js:* npm run test"
   },
   "repository": {
@@ -27,7 +27,8 @@
     "babel-loader": "^5.3.2",
     "eslint": "^1.4.3",
     "expect": "^1.10.0",
-    "mocha": "^2.3.2"
+    "mocha": "^2.3.2",
+    "mocha-loader": "^0.7.1"
   },
   "dependencies": {
     "debug": "^2.2.0",
