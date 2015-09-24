@@ -97,12 +97,12 @@ export const objectConvertedReducer = () => convertedReducer(t.objReducer, t.obj
 
 export const seq = (coll, xf, {valueOnly = false} = {}) => {
   let converted
-  if (Array.isArray(coll)) {
+  if (isArray(coll)) {
     converted = t.transduce(coll, xf, arrayConvertedReducer())
   } else if (isObject(coll)) {
     converted = t.transduce(coll, xf, objectConvertedReducer())
   } else {
-    throw new TypeError(`Unsupported coll ${coll}`)
+    throw new TypeError(`Unsupported collection ${coll}`)
   }
   if (valueOnly) {
     if (converted[ERROR]) {
@@ -123,13 +123,14 @@ export const map = (f) => (xf) => ({
   [RESULT]: (accumulator) => xf[RESULT](accumulator),
   [STEP]: (accumulator, input) => {
     input = ensureConverted(input)
-    // TODO Extract error check into a dedicated transformer and use t.map from caller
     xf[STEP](accumulator, input[ERROR] ? input : (
       input[VALUE] === null ? null : f(input[VALUE])
     ))
     return accumulator
   },
 })
+
+export const mapseq = (xf) => map((value) => seq(value, xf))
 
 // TODO
 // export const byKey = (f) => (xf) => converter(t.map(f), xf)

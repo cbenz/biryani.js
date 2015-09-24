@@ -59,7 +59,7 @@ describe("Scalar converters", () =>
   })
 )
 
-describe("Compound converters", () =>
+describe("Compound converters", () => {
   describe("map", () => {
     it("should be ok with empty array",
       () => expect(b.seq([], b.map(b.testInteger))).toEqual(b.converted([], null))
@@ -77,4 +77,10 @@ describe("Compound converters", () =>
         .toEqual(b.converted([1, null, "x"], {"2": "Not an integer"}))
     })
   })
-)
+  describe("mapseq", () => {
+    it("should be ok ", () => {
+      const points = [[1, 2], null, [3, "x"]]
+      expect(b.seq(points, b.mapseq(b.map(b.testInteger)))).toEqual(b.converted(points, {"2": {"1": "Not an integer"}}))
+    })
+  })
+})
