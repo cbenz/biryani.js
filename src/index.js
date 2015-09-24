@@ -146,13 +146,16 @@ export const map = (f) => (xf) => ({
 })
 
 export const mapkv = (fk, fv) => map(([k, v]) => [fk(k), fv(v)])
+export const mapv = (fbyk) => map(([k, v]) => [k, fbyk[k](v)])
 export const mapseq = (xf) => map((value) => seq(value, xf))
 
 
 // Scalar converters
 
 export const test = (predicate, error = "Test failed") => (value) => converted(value, predicate(value) ? null : error)
-export const testInteger = test(Number.isInteger, "Not an integer")
-export const testPropertyEquals = (propName, expectedValue, error = `value[${propName}] != ${expectedValue}`) =>
-  test((value) => value[propName] == expectedValue, error)
-export const testLength = (length) => testPropertyEquals("length", length, `value.length != ${length}`)
+export const testInteger = test(Number.isInteger, "Integer expected")
+export const testString = test((value) => typeof value === "string", "String expected")
+export const testPropertyEquals = (
+  propName, expectedValue, error = `value[${propName}] == ${expectedValue} expected`
+) => test((value) => value[propName] == expectedValue, error)
+export const testLength = (length) => testPropertyEquals("length", length, `value.length == ${length} expected`)

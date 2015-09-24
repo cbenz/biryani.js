@@ -9,6 +9,3 @@ localStorage.debug = "biryani.js:*,transducers.js:*"
 
 console.log(t)
 console.log(b)
-
-const person = {age: "Bob", weight: 20}
-console.log(b.seq(person, b.mapkv(b.identity, b.testInteger)))
