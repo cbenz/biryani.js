@@ -6,6 +6,10 @@ Port of [biryani](https://pythonhosted.org/Biryani/) Python library in JavaScrip
 
 Based on the [transducers.js](https://github.com/jlongster/transducers.js) library, but may be compatible with others.
 
+## TODO
+
+* [ ] defer errors (ie for i18n)
+
 ## Development
 
 ### Tests

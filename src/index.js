@@ -1,34 +1,22 @@
 import debug from "debug"
 import t from "transducers.js"
 
+import * as functions from "./functions"
 
-const logXf = debug("biryani.js:xf")
+
+const BIRYANI = "biryani.js"
 
 
 // Protocol constants
 
-const ERROR = "@@converter/error"
 const INIT = "@@transducer/init"
 const RESULT = "@@transducer/result"
 const STEP = "@@transducer/step"
-const VALUE = "@@converter/value"
+export const ERROR = "@@converter/error"
+export const VALUE = "@@converter/value"
 
 
-// Functional helpers (should be imported from a very basic lib)
-
-export const add = (n) => (x) => x + n
-export const identity = (x) => x
-
-
-// JavaScript helpers
-
-export const isArray = typeof Array.isArray === "function" ?
-  Array.isArray :
-  (obj) => toString.call(obj) == "[object Array]"
-export const isObject = (x) => x instanceof Object && Object.getPrototypeOf(x) === Object.getPrototypeOf({})
-
-
-// Transducers extensions
+// Converters internals
 
 export class ConversionError extends Error {
   constructor(converted) {
@@ -53,109 +41,149 @@ export const ensureConverted = (value) => isConverted(value) ? value : converted
 
 export const arrayConvertedReducer = (xfError) => {
   let indexCounter = 0
+  const xfValue = t.arrayReducer
+  const log = debug(`${BIRYANI}:transformers:arrayConvertedReducer`)
   return {
     [INIT]: () => {
-      const value = t.arrayReducer[INIT]()
+      const value = xfValue[INIT]()
       const error = xfError[INIT]()
       const accumulator = converted(value, error)
-      logXf("%s returns %j", INIT, accumulator)
+      log("%s returns %j", INIT, accumulator)
       return accumulator
     },
-    [RESULT]: identity,
+    [RESULT]: (accumulator) => {
+      const result = converted(
+        xfValue[RESULT](accumulator[VALUE]),
+        xfError[RESULT](accumulator[ERROR]),
+      )
+      log("%s returns %j", RESULT, result)
+      return result
+    },
     [STEP]: (accumulator, input) => {
-      logXf("%s(%s) accumulator: %j input: %j", STEP, indexCounter, accumulator, input)
+      log("%s(%s) accumulator: %j input: %j", STEP, indexCounter, accumulator, input)
       input = ensureConverted(input)
-      t.arrayReducer[STEP](accumulator[VALUE], input[VALUE])
+      xfValue[STEP](accumulator[VALUE], input[VALUE])
       const error = input[ERROR]
       if (error) {
         xfError[STEP](accumulator[ERROR], [indexCounter, error])
       }
       indexCounter++
-      logXf("%s(%s) returns %j", STEP, indexCounter, accumulator)
+      log("%s(%s) returns %j", STEP, indexCounter, accumulator)
       return accumulator
     },
   }
 }
 
 export const objectConvertedReducer = (xfError) => {
+  const xfValue = t.objReducer
+  const log = debug(`${BIRYANI}:transformers:objectConvertedReducer`)
   return {
     [INIT]: () => {
-      const value = t.objReducer[INIT]()
+      const value = xfValue[INIT]()
       const error = xfError[INIT]()
       const accumulator = converted(value, error)
-      logXf("%s returns %j", INIT, accumulator)
+      log("%s returns %j", INIT, accumulator)
       return accumulator
     },
-    [RESULT]: identity,
-    [STEP]: (accumulator, kv) => {
-      logXf("%s accumulator: %j kv: %j", STEP, accumulator, kv)
-      kv = t.transduce(kv, arrayConvertedReducer, t.arrayReducer)
-      t.objReducer[STEP](accumulator[VALUE], kv[VALUE])
-      const error = kv[ERROR]
-      if (error.length !== 0) {
-        xfError[STEP](
-          accumulator[ERROR],
-          [
-            kv[VALUE][0],
-            t.transduce(error, t.map(([k, v]) => [k === 0 ? "k" : "v", v]), t.objReducer),
-          ]
-        )
+    [RESULT]: (accumulator) => {
+      const result = converted(
+        xfValue[RESULT](accumulator[VALUE]),
+        xfError[RESULT](accumulator[ERROR]),
+      )
+      log("%s returns %j", RESULT, result)
+      return result
+    },
+    [STEP]: (accumulator, input) => {
+      log("%s accumulator: %j input: %j", STEP, accumulator, input)
+      input = t.transduce(input, arrayConvertedReducer, t.arrayReducer)
+      xfValue[STEP](accumulator[VALUE], input[VALUE])
+      const error = input[ERROR][0]
+      if (error) {
+        xfError[STEP](accumulator[ERROR], [input[VALUE][0], error[1]])
       }
-      logXf("%s returns %j", STEP, accumulator)
+      log("%s returns %j", STEP, accumulator)
       return accumulator
     },
   }
 }
 
-export const seq = (coll, xf, {valueOnly = false} = {}) => {
-  let converted
-  if (isArray(coll)) {
-    converted = t.transduce(coll, xf, arrayConvertedReducer(t.objReducer))
-  } else if (isObject(coll)) {
-    converted = t.transduce(coll, xf, objectConvertedReducer(t.objReducer))
-  } else {
-    throw new TypeError(`Unsupported collection ${coll}`)
+export const mapByKey = (converterByKey, {other = null} = {}) => t.map(([k, v]) => {
+  const converter = converterByKey[k] || other
+  if (!converter) {
+    throw new Error(
+      `Converter not found for key "${k}" among ${JSON.stringify(Object.getOwnPropertyNames(converterByKey))}`
+    )
   }
-  if (Object.getOwnPropertyNames(converted[ERROR]).length === 0) {
-    converted[ERROR] = null
-  }
-  if (valueOnly) {
-    if (converted[ERROR]) {
-      throw new ConversionError(converted)
-    } else {
-      return converted[VALUE]
-    }
-  } else {
-    return converted
-  }
-}
-
-
-// Compound converters
-
-export const map = (f) => (xf) => ({
-  [INIT]: xf::xf[INIT],
-  [RESULT]: xf::xf[RESULT],
-  [STEP](accumulator, input) {
-    input = ensureConverted(input)
-    xf[STEP](accumulator, input[ERROR] ? input : (
-      input[VALUE] === null ? null : this::f(input[VALUE])
-    ))
-    return accumulator
-  },
+  return [k, converter(v)]
 })
 
-export const mapkv = (fk, fv) => map(([k, v]) => [fk(k), fv(v)])
-export const mapv = (fbyk) => map(([k, v]) => [k, fbyk[k](v)])
-export const mapseq = (xf) => map((value) => seq(value, xf))
+export const mapKeyValue = (keyConverter, valueConverter) => t.map(([k, v]) => [keyConverter(k), valueConverter(v)])
 
 
-// Scalar converters
+// Top-level API
 
-export const test = (predicate, error = "Test failed") => (value) => converted(value, predicate(value) ? null : error)
-export const testInteger = test(Number.isInteger, "Integer expected")
+export const convert = (coll, xf) => {
+  const log = debug(`${BIRYANI}:convert`)
+  let result
+  if (coll === null) {
+    result = converted(null, null)
+  } else if (functions.isArray(coll)) {
+    result = t.transduce(coll, xf, arrayConvertedReducer(t.objReducer))
+  } else if (functions.isObject(coll)) {
+    result = t.transduce(coll, xf, objectConvertedReducer(t.objReducer))
+  } else {
+    result = converted(coll, "Sequence expected")
+  }
+  if (result[ERROR] && Object.getOwnPropertyNames(result[ERROR]).length === 0) {
+    result[ERROR] = null
+  }
+  log("returns %j", result)
+  return result
+}
+
+export const pipe = (...funcs) => {
+  const log = debug(`${BIRYANI}:pipe`)
+  return (value) => funcs.reduce((accumulator, f, index) => {
+    accumulator = ensureConverted(accumulator)
+    log("index: %s, accumulator: %j", index, accumulator, f)
+    const converted = accumulator[ERROR] ? accumulator : f(accumulator[VALUE])
+    log("returns %j", converted)
+    return converted
+  }, value)
+}
+
+export const structuredMapping = (converterByKey, options) => (coll) => convert(coll, mapByKey(converterByKey, options))
+
+export const toValue = (converted) => {
+  if (converted[ERROR]) {
+    throw new ConversionError(converted)
+  } else {
+    return converted[VALUE]
+  }
+}
+
+export const uniformMapping = (keyConverter, valueConverter) => (coll) =>
+  convert(coll, mapKeyValue(keyConverter, valueConverter))
+
+export const uniformSequence = (...converters) => (coll) => convert(coll, t.map(pipe(...converters)))
+
+
+// Converters
+// (value) => converted
+// (...args) => (value) => converted
+
+export const add = (n) => (value) => converted(value === null ? null : value + n, null)
+
+export const test = (predicate, error = "Test failed") => (value) =>
+  value === null ? converted(null, null) : converted(value, predicate(value) ? null : error)
+
+export const testInteger = test(functions.isInteger, "Integer expected")
+
 export const testString = test((value) => typeof value === "string", "String expected")
-export const testPropertyEquals = (
-  propName, expectedValue, error = `value[${propName}] == ${expectedValue} expected`
-) => test((value) => value[propName] == expectedValue, error)
+
+export const testPropertyEquals = (propName, expectedValue,
+  error = `value[${propName}] == ${expectedValue} expected`) => test((value) => value[propName] == expectedValue, error)
+
 export const testLength = (length) => testPropertyEquals("length", length, `value.length == ${length} expected`)
+
+export const testNotNull = (value) => converted(value, value === null ? "Not null expected" : null)
