@@ -1,6 +1,6 @@
 import {protocols} from "transduce/lib/util"
 import * as tr from "transduce/core"
-import * as transducers from "transduce/transducers"
+import {map} from "transduce/transducers"
 import debug from "debug"
 
 import * as functions from "./functions"
@@ -122,7 +122,7 @@ export const convert = (coll, transducer) => {
   return result
 }
 
-export const mapByKey = (converterByKey, {other = null} = {}) => transducers.map(([k, v]) => {
+export const mapByKey = (converterByKey, {other = null} = {}) => map(([k, v]) => {
   const converter = converterByKey[k] || other
   if (!converter) {
     throw new Error(
@@ -132,8 +132,7 @@ export const mapByKey = (converterByKey, {other = null} = {}) => transducers.map
   return [k, converter(v)]
 })
 
-export const mapKeyValue = (keyConverter, valueConverter) =>
-  transducers.map(([k, v]) => [keyConverter(k), valueConverter(v)])
+export const mapKeyValue = (keyConverter, valueConverter) => map(([k, v]) => [keyConverter(k), valueConverter(v)])
 
 
 // Top-level API
@@ -152,10 +151,10 @@ export const toValue = (converted) => {
 
 export const pipe = (...converters) => {
   const log = debug(`${BIRYANI}:pipe`)
-  return (value) => converters.reduce((accumulator, f, index) => {
+  return (value) => converters.reduce((accumulator, converter, index) => {
     accumulator = ensureConverted(accumulator)
-    log("index: %s, accumulator: %j", index, accumulator, f)
-    const converted = accumulator[cError] ? accumulator : f(accumulator[cValue])
+    log("index: %s, accumulator: %j", index, accumulator, converter)
+    const converted = accumulator[cError] ? accumulator : converter(accumulator[cValue])
     log("returns %j", converted)
     return converted
   }, value)
@@ -164,12 +163,13 @@ export const pipe = (...converters) => {
 export const structuredMapping = (converterByKey, options) => (coll) => convert(coll, mapByKey(converterByKey, options))
 
 export const structuredSequence = (converters) => (coll) =>
-  convert(functions.zip(coll, converters), transducers.map(([value, converter]) => converter(value)))
+  convert(functions.zip(coll, converters), map(([value, converter]) => converter(value)))
 
 export const uniformMapping = (keyConverter, valueConverter) => (coll) =>
   convert(coll, mapKeyValue(keyConverter, valueConverter))
 
-export const uniformSequence = (...converters) => (coll) => convert(coll, transducers.map(pipe(...converters)))
+export const uniformSequence = (...converters) => (coll) =>
+  convert(coll, map(converters.length === 1 ? converters[0] : pipe(...converters)))
 
 
 // Converters
