@@ -119,11 +119,8 @@ export const mapByKey = (converterByKey, {other = null} = {}) => t.map(([k, v]) 
 
 export const mapKeyValue = (keyConverter, valueConverter) => t.map(([k, v]) => [keyConverter(k), valueConverter(v)])
 
-
-// Top-level API
-
-export const convert = (coll, xf) => {
-  const log = debug(`${BIRYANI}:convert`)
+export const seq = (coll, xf) => {
+  const log = debug(`${BIRYANI}:seq`)
   let result
   if (coll === null) {
     result = converted(null, null)
@@ -140,6 +137,9 @@ export const convert = (coll, xf) => {
   log("returns %j", result)
   return result
 }
+
+
+// Top-level API
 
 export const toValue = (converted) => {
   if (converted[ERROR]) {
@@ -164,15 +164,15 @@ export const pipe = (...converters) => {
   }, value)
 }
 
-export const structuredMapping = (converterByKey, options) => (coll) => convert(coll, mapByKey(converterByKey, options))
+export const structuredMapping = (converterByKey, options) => (coll) => seq(coll, mapByKey(converterByKey, options))
 
 export const structuredSequence = (converters) => (coll) =>
-  convert(functions.zip(coll, converters), t.map(([value, converter]) => converter(value)))
+  seq(functions.zip(coll, converters), t.map(([value, converter]) => converter(value)))
 
 export const uniformMapping = (keyConverter, valueConverter) => (coll) =>
-  convert(coll, mapKeyValue(keyConverter, valueConverter))
+  seq(coll, mapKeyValue(keyConverter, valueConverter))
 
-export const uniformSequence = (...converters) => (coll) => convert(coll, t.map(pipe(...converters)))
+export const uniformSequence = (...converters) => (coll) => seq(coll, t.map(pipe(...converters)))
 
 
 // Converters

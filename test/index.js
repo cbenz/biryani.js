@@ -121,33 +121,33 @@ describe("Compound converters", () => {
 
 describe("Top-level API", () => {
   describe("toValue", () => {
-    it("should work", () => expect(b.toValue(b.convert([0], t.map(b.testInteger)))).toEqual([0]))
+    it("should work", () => expect(b.toValue(b.seq([0], t.map(b.testInteger)))).toEqual([0]))
     it("should throw ConversionError",
-      () => expect(() => b.toValue(b.convert(["x"], t.map(b.testInteger)))).toThrow(b.ConversionError))
+      () => expect(() => b.toValue(b.seq(["x"], t.map(b.testInteger)))).toThrow(b.ConversionError))
   })
 })
 
 describe("Converters internals", () => {
   describe("convert", () => {
     it("should work with null", () => {
-      expect(b.convert(null, b.testInteger)).toEqual(b.converted(null, null))
+      expect(b.seq(null, b.testInteger)).toEqual(b.converted(null, null))
     })
     it("should fail with non-iterable", () => {
-      expect(b.convert(0, b.testInteger)).toEqual(b.converted(0, "Sequence expected"))
-      expect(b.convert(1.5, b.testInteger)).toEqual(b.converted(1.5, "Sequence expected"))
+      expect(b.seq(0, b.testInteger)).toEqual(b.converted(0, "Sequence expected"))
+      expect(b.seq(1.5, b.testInteger)).toEqual(b.converted(1.5, "Sequence expected"))
     })
     it("should work with empty arrays",
-      () => expect(b.convert([], t.map(b.testInteger))).toEqual(b.converted([], null))
+      () => expect(b.seq([], t.map(b.testInteger))).toEqual(b.converted([], null))
     )
     it("should work with arrays",
-      () => expect(b.convert([1, 2], t.map(b.testInteger))).toEqual(b.converted([1, 2], null))
+      () => expect(b.seq([1, 2], t.map(b.testInteger))).toEqual(b.converted([1, 2], null))
     )
     it("should work with objects", () => {
       const person = {age: "Bob", weight: 20}
       const testKey = b.test((value) => value.length > 3, "value.length > 3 expected")
-      expect(b.convert(person, t.map(([k, v]) => [testKey(k), b.testInteger(v)])))
+      expect(b.seq(person, t.map(([k, v]) => [testKey(k), b.testInteger(v)])))
         .toEqual(b.converted(person, {age: "value.length > 3 expected"}))
-      expect(b.convert(person, t.map(([k, v]) => [k, b.testInteger(v)])))
+      expect(b.seq(person, t.map(([k, v]) => [k, b.testInteger(v)])))
         .toEqual(b.converted(person, {age: "Integer expected"}))
     })
     it("should work with compose", () => {
@@ -156,36 +156,36 @@ describe("Converters internals", () => {
         b.test((value) => value % 2 === 0, "Even number expected"),
         b.add(2),
       )
-      expect(b.convert([0, 1], t.map(testIntegerAndEvenAndAdd)))
+      expect(b.seq([0, 1], t.map(testIntegerAndEvenAndAdd)))
         .toEqual(b.converted([2, 1], {1: "Even number expected"}))
     })
     it("should fail with arrays with non integer values", () => {
-      expect(b.convert(["x"], t.map(b.testInteger))).toEqual(b.converted(["x"], {0: "Integer expected"}))
-      expect(b.convert([1, "x"], t.map(b.testInteger)))
+      expect(b.seq(["x"], t.map(b.testInteger))).toEqual(b.converted(["x"], {0: "Integer expected"}))
+      expect(b.seq([1, "x"], t.map(b.testInteger)))
         .toEqual(b.converted([1, "x"], {1: "Integer expected"}))
     })
   })
   describe("mapByKey", () => {
     it("should work", () => {
       const person = {age: 10, name: "Bob"}
-      expect(b.convert(person, b.mapByKey({age: b.testInteger, name: b.testString})))
+      expect(b.seq(person, b.mapByKey({age: b.testInteger, name: b.testString})))
         .toEqual(b.converted(person, null))
     })
     it("should fail", () => {
       const person = {age: "10", name: "Bob"}
-      expect(b.convert(person, b.mapByKey({age: b.testInteger, name: b.testString})))
+      expect(b.seq(person, b.mapByKey({age: b.testInteger, name: b.testString})))
         .toEqual(b.converted(person, {age: "Integer expected"}))
     })
   })
   describe("mapKeyValue", () => {
     it("should work", () => {
       const person = {age: "Bob", weight: 20}
-      expect(b.convert(person, b.mapKeyValue(b.testLength(3), b.testInteger)))
+      expect(b.seq(person, b.mapKeyValue(b.testLength(3), b.testInteger)))
         .toEqual(b.converted(person, {age: "Integer expected", weight: "value.length == 3 expected"}))
     })
     it("should work with arrays of objects", () => {
       const persons = [{name: "Bob"}, {city: "Rome", name: "Bob"}]
-      expect(b.convert(persons, t.map((person) => b.convert(person, b.mapKeyValue(b.testString, b.testString)))))
+      expect(b.seq(persons, t.map((person) => b.seq(person, b.mapKeyValue(b.testString, b.testString)))))
         .toEqual(b.converted(persons, null))
     })
   })
