@@ -4,7 +4,7 @@ import * as b from "../src/index" // eslint-disable-line
 import * as functions from "../src/functions" // eslint-disable-line
 
 
-localStorage.debug = "biryani.js:*,transducers.js:*"
+localStorage.debug = "biryani.js:*"
 
 
 // Mock expect API to allow copy-pasting tests
