@@ -129,7 +129,7 @@ export const convert = (coll, xf) => {
     result = converted(null, null)
   } else if (functions.isArray(coll)) {
     result = t.transduce(coll, xf, arrayConvertedReducer(t.objReducer))
-  } else if (functions.isObject(coll)) {
+  } else if (functions.isObject(coll) || functions.isIterator(coll)) {
     result = t.transduce(coll, xf, objectConvertedReducer(t.objReducer))
   } else {
     result = converted(coll, "Sequence expected")
@@ -141,9 +141,21 @@ export const convert = (coll, xf) => {
   return result
 }
 
-export const pipe = (...funcs) => {
+export const toValue = (converted) => {
+  if (converted[ERROR]) {
+    throw new ConversionError(converted)
+  } else {
+    return converted[VALUE]
+  }
+}
+
+
+// Compound converters
+// (...converters) => (coll) => converted
+
+export const pipe = (...converters) => {
   const log = debug(`${BIRYANI}:pipe`)
-  return (value) => funcs.reduce((accumulator, f, index) => {
+  return (value) => converters.reduce((accumulator, f, index) => {
     accumulator = ensureConverted(accumulator)
     log("index: %s, accumulator: %j", index, accumulator, f)
     const converted = accumulator[ERROR] ? accumulator : f(accumulator[VALUE])
@@ -154,13 +166,8 @@ export const pipe = (...funcs) => {
 
 export const structuredMapping = (converterByKey, options) => (coll) => convert(coll, mapByKey(converterByKey, options))
 
-export const toValue = (converted) => {
-  if (converted[ERROR]) {
-    throw new ConversionError(converted)
-  } else {
-    return converted[VALUE]
-  }
-}
+export const structuredSequence = (converters) => (coll) =>
+  convert(functions.zip(coll, converters), t.map(([value, converter]) => converter(value)))
 
 export const uniformMapping = (keyConverter, valueConverter) => (coll) =>
   convert(coll, mapKeyValue(keyConverter, valueConverter))
