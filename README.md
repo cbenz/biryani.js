@@ -4,7 +4,7 @@ Experimentation around data conversion and validation using transducers.
 
 Port of [biryani](https://pythonhosted.org/Biryani/) Python library in JavaScript.
 
-Based on the [transducers.js](https://github.com/jlongster/transducers.js) library, but may be compatible with others.
+Based on the [transduce](https://github.com/transduce/transduce) library, but may be compatible with others.
 
 ## TODO
 
