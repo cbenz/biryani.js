@@ -1,7 +1,7 @@
-import {protocols} from "transduce/lib/util"
-import * as tr from "transduce/core"
 import {map} from "transduce/transducers"
-import debug from "debug"
+import * as tr from "transduce/core"
+import * as util from "transduce/lib/util"
+import createLog from "debug"
 
 import * as functions from "./functions"
 
@@ -11,8 +11,9 @@ const BIRYANI = "biryani.js"
 
 // Protocol constants
 
-export const converterProtocol = {error: "@@converter/error", value: "@@converter/value"}
-const {init: tInit, step: tStep, result: tResult} = protocols.transducer
+const converterProtocol = {error: "@@converter/error", value: "@@converter/value"}
+export const protocols = {converter: converterProtocol}
+const {init: tInit, step: tStep, result: tResult} = util.protocols.transducer
 const {error: cError, value: cValue} = converterProtocol
 
 // Converters internals
@@ -34,6 +35,16 @@ export class Converted {
     this[cError] = error
     this[cValue] = value
   }
+  toValue() {
+    if (this[cError]) {
+      throw new ConversionError(this)
+    } else {
+      return this[cValue]
+    }
+  }
+  toValueError() {
+    return {value: this[cValue], error: this[cError]}
+  }
 }
 
 export const converted = (value, error = null) => new Converted(value, error)
@@ -47,7 +58,7 @@ export class ConvertedTransformer {
   constructor(xfValue, xfError) {
     this.xfValue = xfValue
     this.xfError = xfError
-    this.log = debug(`${BIRYANI}:transformers:ConvertedTransformer`)
+    this.log = createLog(`${BIRYANI}:transformers:ConvertedTransformer`)
   }
   [tInit]() {
     const value = this.xfValue[tInit]()
@@ -101,7 +112,7 @@ class ConvertedObjectTransformer extends ConvertedTransformer {
 }
 
 export const convert = (coll, transducer) => {
-  const log = debug(`${BIRYANI}:convert`)
+  const log = createLog(`${BIRYANI}:convert`)
   if (coll === null) {
     return converted(null, null)
   }
@@ -135,22 +146,11 @@ export const mapByKey = (converterByKey, {other = null} = {}) => map(([k, v]) =>
 export const mapKeyValue = (keyConverter, valueConverter) => map(([k, v]) => [keyConverter(k), valueConverter(v)])
 
 
-// Top-level API
-
-export const toValue = (converted) => {
-  if (converted[cError]) {
-    throw new ConversionError(converted)
-  } else {
-    return converted[cValue]
-  }
-}
-
-
 // Compound converters
 // (...converters) => (coll) => converted
 
 export const pipe = (...converters) => {
-  const log = debug(`${BIRYANI}:pipe`)
+  const log = createLog(`${BIRYANI}:pipe`)
   return (value) => converters.reduce((accumulator, converter, index) => {
     accumulator = ensureConverted(accumulator)
     log("index: %s, accumulator: %j", index, accumulator, converter)
@@ -168,8 +168,12 @@ export const structuredSequence = (converters) => (coll) =>
 export const uniformMapping = (keyConverter, valueConverter) => (coll) =>
   convert(coll, mapKeyValue(keyConverter, valueConverter))
 
-export const uniformSequence = (...converters) => (coll) =>
-  convert(coll, map(converters.length === 1 ? converters[0] : pipe(...converters)))
+export const uniformSequence = (...converters) => {
+  if (converters.length === 0) {
+    throw new Error("No converters given")
+  }
+  return (coll) => convert(coll, map(converters.length === 1 ? converters[0] : pipe(...converters)))
+}
 
 
 // Converters
@@ -181,6 +185,21 @@ export const add = (n) => (value) => converted(value === null ? null : value + n
 export const test = (predicate, error = "Test failed") => (value) =>
   value === null ? converted(null, null) : converted(value, predicate(value) ? null : error)
 
+export const testLowerThan = (threshold, {orEqual = false} = {}) => test(
+  (value) => orEqual ? value <= threshold : value < threshold,
+  `value ${orEqual ? "<=" : "<"} ${threshold} expected`,
+)
+
+export const testGreaterThan = (threshold, {orEqual = false} = {}) => test(
+  (value) => orEqual ? value >= threshold : value > threshold,
+  `value ${orEqual ? ">=" : ">"} ${threshold} expected`,
+)
+
+export const testBetween = (low, high, {excludeBounds = false} = {}) => test(
+  (value) => excludeBounds ? low < value && value < high : low <= value && value <= high,
+  `${low} ${excludeBounds ? "<" : "<="} value ${excludeBounds ? "<" : "<="} ${high} expected`,
+)
+
 export const testInteger = test(functions.isInteger, "Integer expected")
 
 export const testString = test((value) => typeof value === "string", "String expected")
@@ -191,3 +210,19 @@ export const testPropertyEquals = (propName, expectedValue,
 export const testLength = (length) => testPropertyEquals("length", length, `value.length == ${length} expected`)
 
 export const testNotNull = (value) => converted(value, value === null ? "Not null expected" : null)
+
+export const toInteger = (value) => converted(value === null ? null : Number(value), null)
+
+
+// Converters for debugging
+
+export function debug(value) {
+  debugger
+  return value
+}
+
+const logTap = createLog(`${BIRYANI}:converters:tap`)
+export function tap(value) {
+  logTap(value)
+  return value
+}

@@ -1,39 +1,44 @@
 # biryani.js
 
-Experimentation around data conversion and validation using transducers.
+Biryani is a data conversion and validation library.
 
-Port of [biryani](https://pythonhosted.org/Biryani/) Python library in JavaScript.
+It is a port of the [biryani](https://pythonhosted.org/Biryani/) Python library to JavaScript.
 
-Based on the [transduce](https://github.com/transduce/transduce) library, but may be compatible with others.
+There are plenty of libraries to achieve data conversion and validation.
+This one has some specificities:
 
-## Examples
+- it's based on [transducers](http://simplectic.com/blog/2014/transducers-explained-1/) through the [transduce](https://github.com/transduce/transduce) library
+- it's schema-less
+- it's exception-less: errors are simply returned (but `toValue` helper throws)
+- errors are structured the same way than the input data
+
+## Getting started
 
 Just show me the code, I'll understand!
-
-```javascript
-import {pipe, structuredMapping, testInteger, testNotNull, testString} from "biryani.js"
-```
 
 Let's validate an object representing a person:
 
 ```javascript
-const person1 = {age: 10, name: "Bob"}
+// import {pipe, structuredMapping, ...} from "biryani.js"
+
+const person1 = {age: 10, name: "Bob"} // this is input data
 
 const validatePerson = structuredMapping({
   age: testInteger,
   name: pipe(testString, testNotNull)
 })
 
+// validatePerson is a function called a converter
+
 console.log(validatePerson(person1))
 {
   "@@converter/error": null,
   "@@converter/value": {"age": 10, "name": "Bob"}
 }
+
 ```
 
-> `"@@converter/error"` and `"@@converter/value"` are symbols
-
-Everything is OK, but let's test with invalid data:
+There is no error returned. Now let's test `validatePerson` again with invalid data:
 
 ```javascript
 const person2 = {age: "Hi", name: "Bob"}
@@ -45,11 +50,51 @@ console.log(validatePerson(person2))
 }
 ```
 
-See also [tests](test/index.js).
+This time there is an error "Integer expected" associated with the key "age".
+
+When a converter returns an error,
+
+### Errors handling
+
+The keys `"@@converter/error"` and `"@@converter/value"` of converted objects are annoying.
+The return value of `validatePerson` should be treated like this:
+
+```javascript
+// get value and error
+const {value, error} = validatePerson(person2).toValueError()
+console.log(value)
+{"age": "Hi", "name": "Bob"}
+console.log(error)
+{"age": "Integer expected"},
+
+// or get value only and throw ConversionError if there is an error
+const value = validatePerson(person2).toValue()
+// throws ConversionError: Conversion failed: {"age":"Integer expected"} for {"age":"Hi","name":"Bob"}
+```
+
+> "value" and "error" are conjugated in the singular by convention
+
+When a converter returns an error, the output value is the same than the input value.
+
+### Data conversion
+
+Validation is a particular case of conversion: data is not transformed, only errors are returned if data is invalid.
+
+```javascript
+TODO
+```
 
 ## TODO
 
 * [ ] defer errors (ie for i18n)
+
+## API
+
+## Debugging a converter
+
+When converters grow in complexity it is necessary to debug them.
+
+TODO
 
 ## Development
 

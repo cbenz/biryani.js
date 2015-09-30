@@ -26,8 +26,8 @@ describe("Converters", () => {
       expect(b.testInteger([1])).toEqual(b.converted([1], "Integer expected"))
       // Special case for NaN which cannot be compared with ==
       const resultWithNan = b.testInteger(NaN)
-      expect(isNaN(resultWithNan[b.converterProtocol.value])).toBe(true)
-      expect(resultWithNan[b.converterProtocol.error]).toBe("Integer expected")
+      expect(isNaN(resultWithNan[b.protocols.converter.value])).toBe(true)
+      expect(resultWithNan[b.protocols.converter.error]).toBe("Integer expected")
     })
   })
 })
@@ -91,6 +91,9 @@ describe("Compound converters", () => {
       const input2 = [1]
       expect(conv2(input2)).toEqual(b.converted(input2, {0: "Sequence expected"}))
     })
+    it("should fail with no arguments", () => {
+      expect(() => b.uniformSequence()).toThrow(Error)
+    })
     it("should work with arrays", () => {
       const conv = b.uniformSequence(b.pipe(b.testInteger, b.testNotNull))
       const input = [1, null]
@@ -119,11 +122,18 @@ describe("Compound converters", () => {
   })
 })
 
-describe("Top-level API", () => {
+describe("Converted", () => {
   describe("toValue", () => {
-    it("should work", () => expect(b.toValue(b.convert([0], tr.map(b.testInteger)))).toEqual([0]))
+    it("should work", () => expect(b.uniformSequence(b.testInteger)([0]).toValue()).toEqual([0]))
     it("should throw ConversionError",
-      () => expect(() => b.toValue(b.convert(["x"], tr.map(b.testInteger)))).toThrow(b.ConversionError))
+      () => expect(() => b.uniformSequence(b.testInteger)(["x"]).toValue()).toThrow(b.ConversionError))
+  })
+  describe("toValueError", () => {
+    it("should work", () => {
+      expect(b.uniformSequence(b.testInteger)([0]).toValueError()).toEqual({value: [0], error: null})
+      expect(b.uniformSequence(b.testInteger)(["x"]).toValueError())
+        .toEqual({value: ["x"], error: {0: "Integer expected"}})
+    })
   })
 })
 
