@@ -6,6 +6,47 @@ Port of [biryani](https://pythonhosted.org/Biryani/) Python library in JavaScrip
 
 Based on the [transduce](https://github.com/transduce/transduce) library, but may be compatible with others.
 
+## Examples
+
+Just show me the code, I'll understand!
+
+```javascript
+import {pipe, structuredMapping, testInteger, testNotNull, testString} from "biryani.js"
+```
+
+Let's validate an object representing a person:
+
+```javascript
+const person1 = {age: 10, name: "Bob"}
+
+const validatePerson = structuredMapping({
+  age: testInteger,
+  name: pipe(testString, testNotNull)
+})
+
+console.log(validatePerson(person1))
+{
+  "@@converter/error": null,
+  "@@converter/value": {"age": 10, "name": "Bob"}
+}
+```
+
+> `"@@converter/error"` and `"@@converter/value"` are symbols
+
+Everything is OK, but let's test with invalid data:
+
+```javascript
+const person2 = {age: "Hi", name: "Bob"}
+
+console.log(validatePerson(person2))
+{
+  "@@converter/error": {"age": "Integer expected"},
+  "@@converter/value": {"age": "Hi", "name": "Bob"}
+}
+```
+
+See also [tests](test/index.js).
+
 ## TODO
 
 * [ ] defer errors (ie for i18n)
