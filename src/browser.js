@@ -19,31 +19,44 @@ const expect = (...args) => { // eslint-disable-line
 
 // Code to be executed in browser console, see README.md
 
+// log(b.pipe(b.testInteger, b.toInteger)("x"))
+log(b.toInteger("x"))
+log(b.toInteger([1]))
+debugger
+
 import {pipe, structuredMapping, test, testBetween, testInteger, testNotNull, testString, uniformSequence} from "../src/index" // eslint-disable-line
 
-const {error: cError, value: cValue} = b.protocols.converter
+const {error: cError, value: cValue} = b.protocols.converter // eslint-disable-line
 
-const person = {
+const person = { // eslint-disable-line
   age: 10,
   name: "Bob",
   // parents: ["a", "b", "c"],
-  parents: ["a", "b"],
+  // parents: ["a", "b"],
+  parents: "ab",
 }
+// const person2 = {age: "10", name: "Bob"}
 
 const validatePerson = structuredMapping({
   age: b.toInteger,
   name: pipe(testString, testNotNull),
   parents: pipe(
     test((parents) => testBetween(1, 2)(parents.length)),
-    uniformSequence(
-      testString,
-      test((value) => value.lenght > 2),
-    ),
+    // uniformSequence(
+    //   testString,
+    //   // emptyToNull
+    //   test((value) => value.length > 0, "not empty expected"),
+    //   (value) => `${value} benz`,
+    // ),
+    // b.debug,
+    // (parents) => {parents.push("3eme"); return parents}
+    // (parents) => tr.sequence(tr.array.push("xxx"), parents), // no: lazy
+    // (parents) => tr.into([], tr.array.push("xxx"), parents),
+    tr.into("", tr.array.push("xxx")),
   ),
 })
-const person2 = {age: "10", name: "Bob"}
-log(validatePerson(person2))
-debugger
+log(validatePerson(person))
+// debugger
 // const value = b.toValue(result)
 // const value = result[cValue], error = result[cError]
 // const {value, error} = {value: result[cValue], error: result[cError]}

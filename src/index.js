@@ -180,6 +180,16 @@ export const uniformSequence = (...converters) => {
 // (value) => converted
 // (...args) => (value) => converted
 
+// Low-level JavaScript converters
+
+export const parseInt = (value) => {
+  if (value === null) {
+    return converted(null, null)
+  }
+  const result = global.parseInt(value)
+  return isNaN(result) ? converted(value, "Integer representation expected") : converted(result, null)
+}
+
 export const add = (n) => (value) => converted(value === null ? null : value + n, null)
 
 export const test = (predicate, error = "Test failed") => (value) =>
@@ -211,10 +221,12 @@ export const testLength = (length) => testPropertyEquals("length", length, `valu
 
 export const testNotNull = (value) => converted(value, value === null ? "Not null expected" : null)
 
-export const toInteger = (value) => converted(value === null ? null : Number(value), null)
+export const testScalar = test(functions.isScalar, "Scalar expected")
+
+export const toInteger = (value) => functions.isInteger(value) ? converted(value) : pipe(testScalar, parseInt)(value)
 
 
-// Converters for debugging
+// Debug converters
 
 export function debug(value) {
   debugger

@@ -15,7 +15,7 @@ describe("Converters", () => {
       expect(b.testInteger(1)).toEqual(b.converted(1, null))
       expect(b.testInteger(-1)).toEqual(b.converted(-1, null))
     })
-    it("should fail with non integers", () => {
+    it("should fail with non-integers", () => {
       expect(b.testInteger(1.5)).toEqual(b.converted(1.5, "Integer expected"))
       expect(b.testInteger("1")).toEqual(b.converted("1", "Integer expected"))
       expect(b.testInteger("x")).toEqual(b.converted("x", "Integer expected"))
@@ -28,6 +28,32 @@ describe("Converters", () => {
       const resultWithNan = b.testInteger(NaN)
       expect(isNaN(resultWithNan[b.protocols.converter.value])).toBe(true)
       expect(resultWithNan[b.protocols.converter.error]).toBe("Integer expected")
+    })
+  })
+  describe("toInteger", () => {
+    it("should work with null", () => {
+      expect(b.toInteger(null)).toEqual(b.converted(null, null))
+    })
+    it("should work with integers", () => {
+      expect(b.toInteger(0)).toEqual(b.converted(0, null))
+      expect(b.toInteger(1)).toEqual(b.converted(1, null))
+      expect(b.toInteger(-1)).toEqual(b.converted(-1, null))
+    })
+    it("should work with non-integers representing integers", () => {
+      expect(b.toInteger(1.5)).toEqual(b.converted(1, null))
+      expect(b.toInteger("1")).toEqual(b.converted(1, null))
+    })
+    it("should fail with non-integers not representing integers", () => {
+      expect(b.toInteger("x")).toEqual(b.converted("x", "Integer representation expected"))
+      expect(b.toInteger({})).toEqual(b.converted({}, "Scalar expected"))
+      expect(b.toInteger({a: 1})).toEqual(b.converted({a: 1}, "Scalar expected"))
+      expect(b.toInteger([])).toEqual(b.converted([], "Scalar expected"))
+      expect(b.toInteger(["x"])).toEqual(b.converted(["x"], "Scalar expected"))
+      expect(b.toInteger([1])).toEqual(b.converted([1], "Scalar expected"))
+      // Special case for NaN which cannot be compared with ==
+      const resultWithNan = b.toInteger(NaN)
+      expect(isNaN(resultWithNan[b.protocols.converter.value])).toBe(true)
+      expect(resultWithNan[b.protocols.converter.error]).toBe("Integer representation expected")
     })
   })
 })
@@ -46,6 +72,11 @@ describe("Compound converters", () => {
       const conv = b.structuredMapping({age: b.testInteger, name: b.pipe(b.testString, b.testNotNull)})
       const person = {age: 10, name: "Bob"}
       expect(conv(person)).toEqual(b.converted(person, null))
+    })
+    it("should fail with missing keys", () => {
+      const conv = b.structuredMapping({age: b.testInteger, name: b.pipe(b.testString, b.testNotNull)})
+      const person = {age: 10}
+      expect(conv(person)).toEqual(b.converted(person, {name: "Missing key"}))
     })
     it("should fail with extra keys without defined converter", () => {
       const conv = b.structuredMapping({name: b.pipe(b.testString, b.testNotNull)})
@@ -169,7 +200,7 @@ describe("Converters internals", () => {
       expect(b.convert([0, 1], tr.map(testIntegerAndEvenAndAdd)))
         .toEqual(b.converted([2, 1], {1: "Even number expected"}))
     })
-    it("should fail with arrays with non integer values", () => {
+    it("should fail with arrays with non-integer values", () => {
       expect(b.convert(["x"], tr.map(b.testInteger))).toEqual(b.converted(["x"], {0: "Integer expected"}))
       expect(b.convert([1, "x"], tr.map(b.testInteger)))
         .toEqual(b.converted([1, "x"], {1: "Integer expected"}))

@@ -5,6 +5,7 @@ export const isArray = typeof Array.isArray === "function" ?
   (x) => toString.call(x) == "[object Array]"
 export const isObject = (x) => x instanceof Object && Object.getPrototypeOf(x) === Object.getPrototypeOf({})
 export const isIterator = (x) => x[Symbol.iterator] || x.next
+export const isScalar = (x) => (/string|number|boolean/).test(typeof x)
 
 
 // Functional helpers (should be imported from a very basic lib)
