@@ -17,13 +17,13 @@ This one has some specificities:
 Just show me the code, I'll understand!
 
 ```javascript
-const validatePerson = structuredMapping({
+const toPerson = structuredMapping({
   age: testInteger,
   name: pipe(testString, testNotNull)
 })
 const person = {age: "Hi", name: "Bob"}
 
-validatePerson(person).toValueError()
+toPerson(person).toValueError()
 {
   value: {"age": "Hi", "name": "Bob"},
   error: {"age": "Integer expected"}
@@ -44,7 +44,7 @@ parseInt("1")
 1
 ```
 
-Now what happens if the user types `"x"`?
+What happens if the user types `"x"`?
 
 ```javascript
 parseInt("x")
@@ -71,97 +71,126 @@ b.toInteger("x").toValueError()
 > import * as b from "biryani.js"
 > ```
 
-There are other converters.
-Some of them convert data like `toInteger`,
-other validate data always returning the input value and maybe returning an error:
+There are many other converters shipped with biryani.js.
+
+`testInteger` validates data but `toInteger` converts data. Let's compare them:
 
 ```javascript
 b.testInteger("1").toValueError()
 {value: "1", error: "Integer expected"} // notice the value is not converted
-```
 
-There are *compound* converters too. They convert compound values like arrays or objects.
+b.toInteger("1").toValueError()
+{value: 1, error: null}
+```
 
 Say we want to validate an object representing a person:
 
 ```javascript
-const person = {age: 10, name: "Bob"}
+const person = {age: "10", name: "Bob"}
 ```
 
 We want to check that the "age" key is an integer and that the "name" key is a string and is not null.
-Let's use the `structuredMapping` converter which accepts as argument an object
-describing which converter to apply to each key:
+
+Let's use the `structuredMapping` converter which takes an object describing which converter to apply to each key:
 
 ```javascript
-const validatePerson = b.structuredMapping({
-  age: b.testInteger,
+let toPerson = b.structuredMapping({
+  age: b.toInteger,
   name: b.pipe(b.testString, b.testNotNull)
 })
 ```
 
 `structuredMapping` can be called a *converter creator* because it returns a function.
-This function is a converter itself!
+And this function is a converter itself!
 
 ```javascript
-validatePerson(person).toValueError()
+toPerson(person).toValueError()
 {
   value: {"age": 10, "name": "Bob"},
   error: null
 }
 ```
 
-No error is returned. Now let's call our `validatePerson` converter again with invalid data:
+No error is returned. Now let's call our `toPerson` converter again with invalid data:
 
 ```javascript
 const invalidPerson = {age: "Hi", name: "Bob"}
 
-validatePerson(invalidPerson).toValueError()
+toPerson(invalidPerson).toValueError()
 {
   value: {"age": "Hi", "name": "Bob"},
-  error: {"age": "Integer expected"}
+  error: {"age": "Integer representation expected"}
 }
 ```
 
-This time an error is returned: "Integer expected".
+This time an error is returned: "Integer representation expected".
 Notice that the error message is associated with the key "age".
 Since there is an error, the input value is returned.
 This allows us to display a neat error message to the user (think of a web form...).
 
 So every developer can create custom converters and assemble them together with biryani.js converters.
 
-* [ ] TODO array of persons
-* [ ] TODO test age is [0, 150]
-* [ ] TODO make validatePerson a converter creator
-
-### Errors handling
-
-The keys `"@@converter/error"` and `"@@converter/value"` of converted objects are annoying.
-The return value of `validatePerson` should be treated like this:
+Let's enhance the converter to check the age is between 0 and 150:
 
 ```javascript
-// get value and error
-const {value, error} = validatePerson(person2).toValueError()
-console.log(value)
-{"age": "Hi", "name": "Bob"}
-// When a converter returns an error, the input value is returned.
-console.log(error)
-{"age": "Integer expected"},
-
-// or get value only and throw ConversionError if there is an error
-const value = validatePerson(person2).toValue()
-// throws ConversionError: Conversion failed: {"age":"Integer expected"} for {"age":"Hi","name":"Bob"}
+toPerson = b.structuredMapping({
+  age: b.pipe(b.toInteger, b.testBetween(0, 150)),
+  name: b.pipe(b.testString, b.testNotNull)
+})
 ```
 
-> "value" and "error" are conjugated in the singular by convention
+Here we introduced a new converter `pipe` which executes its given converters sequentially and stops when one hits an error.
 
-### Data conversion
-
-Validation is a particular case of conversion where data is not transformed
-and only errors are returned if data is invalid.
+The interesting thing is that we can parametrize a converter by transforming it into a function, a converter creator.
+This is very easy in JavaScript using the arrow function notation:
 
 ```javascript
-TODO
+toPerson = (minAge, maxAge) => b.structuredMapping({
+  age: b.pipe(b.toInteger, b.testBetween(minAge, maxAge)),
+  name: b.pipe(b.testString, b.testNotNull)
+})
+
+toAdult = toPerson(18, 150) // as the french law says :)
 ```
+
+Quick test:
+
+```javascript
+const kid = {"age": "10", "name": "Bob"},
+
+toAdult(kid)
+{
+  value: {"age": "10", "name": "Bob"},
+  error: {"age": "18 <= value <= 150 expected"}
+}
+```
+
+One level higher: say we want to convert an array of persons.
+
+```javascript
+const persons = [
+  {age: 10, name: "Bob"},
+  {age: "Hey", name: "Mario"},
+]
+```
+
+To convert arrays we'll use the `uniformSequence` converter which applies the same converter to each item of the array.
+Let's also reuse our previous `toPerson` converter:
+
+```javascript
+const toPersons = b.uniformSequence(toPerson)
+
+toPersons(persons)
+{
+  value: [
+    {age: 10, name: "Bob"},
+    {age: "Hey", name: "Mario"},
+  ],
+  error: {1: {age: "Integer representation expected"}}
+}
+```
+
+Again, the error is structured like the input value: we see that the error concerns the item of index 1 in the array.
 
 ## TODO
 
