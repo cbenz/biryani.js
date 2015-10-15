@@ -14,10 +14,3 @@ export const isString = (value) => typeof value === "string"
 export const add = (n) => (x) => x + n
 export const identity = (x) => x
 export const isInteger = Number.isInteger
-
-
-// Utility functions
-
-export const zip = (...collections) => collections[0].map(
-  (item, idx) => collections.map((collection) => collection[idx])
-)

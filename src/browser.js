@@ -47,7 +47,7 @@ localStorage.debug = ""
 //       (value) => tr.transduce(
 //         tr.map(
 //           ([key, value]) => [
-//             b.converted(key, ["father", "mother"].includes(key) ? null : "father or mother expected"),
+//             b.test((key) => ["father", "mother"].includes(key), "father or mother expected"),
 //             value,
 //           ],
 //         ),
@@ -69,15 +69,34 @@ localStorage.debug = ""
 // const output2 = b.convert(converter, badPerson)
 // console.log(output2)
 
-const converter = b.structuredObject({
-  age: b.pipe(
-    b.testInteger,
-    (value) => value >= 18,
+const converter = b.mapObjectByKey({
+  // age: (value) => tr.transduce(
+  //   tr.map(b.testInteger),
+  //   expectSingleValue,
+  //   [value],
+  // ),
+  // age: (value) => tr.transduce(
+  //     b.pipe(
+  //       b.testInteger,
+  //       b.test((value) => value >= 18, "Adult expected"),
+  //     ),
+  //   expectSingleValue,
+  //   [value],
+  // ),
+  age: b.transduceValue(
+    b.pipe(
+      b.testInteger,
+      b.test((value) => value >= 18, "Adult expected"),
+    ),
   ),
-  name: b.pipe(
-    b.testString,
-    (value) => "Crazy " + value,
-  ),
+  // name: b.pipe(
+  //   b.testString,
+  //   (value) => "Crazy " + value,
+  // ),
+  // name: b.pipe(
+  //   b.testString,
+  //   (value) => "Crazy " + value,
+  // ),
   // likes: b.uniformArray(
   //   b.test((value) => value.endsWith("ing"), "-ing suffix expected")
   // ),
@@ -95,19 +114,48 @@ const converter = b.structuredObject({
   //     b.map((value) => value + "-ing"),
   //   )
   // ),
-  // likes: b.convertArray(
-  //   b.test((value) => value.endsWith("ing"), "-ing suffix expected"),
-  //   (value) => value + "-ing",
+  // likes: b.transduceArray(
+  //   tr.compose(
+  //     b.ifSuccess(tr.map(b.test((value) => value.endsWith("ing"), "-ing suffix expected"))),
+  //     b.ifSuccess(tr.map((value) => value + "-ding")),
+  //     b.ifError(tr.drop(1)),
+  //   )
   // ),
-  likes: b.transduceArray(
-    tr.compose(
-      b.map(b.test((value) => value.endsWith("ing"), "-ing suffix expected")),
-      b.map((value) => value + "-ing"),
-      tr.drop(1),
-    )
+  // likes: b.transduceArray(
+  //   b.whileSuccess(
+  //     tr.map(b.test((value) => value.endsWith("ing"), "-ing suffix expected")),
+  //     tr.map((value) => value + "-ding"),
+  //   ),
+  // ),
+  // likes: b.transduceArray(
+  //   b.pipe(
+  //     b.test((value) => value.endsWith("ing"), "-ing suffix expected"),
+  //     (value) => value + "-ding",
+  //   ),
+  // ),
+  // likes: (value) => tr.transduce(
+  //   tr.map(b.testArray),
+  //   expectSingleValue,
+  //   [value],
+  // ),
+  // likes: (value) => b.transduceArray(
+  //   b.pipe(
+  //     b.test((value) => value.endsWith("ing"), "-ing suffix expected"),
+  //     (value) => value + "-ding",
+  //   ),
+  // )(
+  //   tr.transduce(
+  //     tr.map(b.testArray),
+  //     expectSingleValue,
+  //     [value],
+  //   )
+  // ),
+  likes: b.mapArray(
+    b.test((value) => value.endsWith("ing"), "-ing suffix expected"),
+    (value) => value + "-ding",
   ),
-  parents: b.uniformObject(
-    (key) => b.converted(key, ["father", "mother"].includes(key) ? null : "father or mother expected"),
+  parents: b.mapObject(
+    b.test((key) => ["father", "mother"].includes(key), "father or mother expected"),
     (value) => value + value.slice(-1) + "y",
   ),
 })
@@ -115,7 +163,7 @@ const converter = b.structuredObject({
 
 
 const person = {
-  age: 12,
+  age: 20,
   name: "Bob",
   likes: ["swimming", "reading", "running"],
   parents: {
@@ -124,6 +172,15 @@ const person = {
   },
 }
 const badPerson1 = {
+  age: 20,
+  name: "Bob",
+  likes: ["swimming", "read", "running"],
+  parents: {
+    father: "Dad",
+    mother: "Mum",
+  },
+}
+const badPerson2 = {
   age: 12,
   name: "Bob",
   likes: ["swimming", "read", "running"],
@@ -133,13 +190,15 @@ const badPerson1 = {
     brother: "Bro",
   },
 }
-const badPerson2 = {
+const badPerson3 = {
   age: [12],
   name: {a: "Bob"},
   likes: 1,
   parents: 1,
 }
 
+
 console.log(converter(person))
 console.log(converter(badPerson1))
 console.log(converter(badPerson2))
+console.log(converter(badPerson3))

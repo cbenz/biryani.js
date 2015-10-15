@@ -23,14 +23,20 @@ export class Converted {
     this[cError] = error
     this[cValue] = value
   }
-  toValue() {
+  value() {
     if (this[cError]) {
       throw new ConversionError(this)
     } else {
       return this[cValue]
     }
   }
-  toValueError() {
+  valueWithoutErrorCheck() {
+    return this[cValue]
+  }
+  error() {
+    return this[cError]
+  }
+  valueAndError() {
     return {value: this[cValue], error: this[cError]}
   }
 }

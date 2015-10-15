@@ -1,25 +1,11 @@
-import * as tr from "transduce/core"
+import {map} from "transduce/transducers"
 
-import {converted, ensureConverted} from "../converted"
+// import * as logging from "../logging"
+// import * as simple from "./simple"
+import {transduceArray, transduceObject} from "../transduce"
+import {whileSuccess} from "../transducers"
 import * as functions from "../functions"
-import * as logging from "../logging"
-import * as simple from "./simple"
-import * as transformers from "../transformers"
-import protocols from "../protocols"
 
-
-const {error: cError, value: cValue} = protocols.converter
-
-
-export const map = (callback) => tr.transducer(
-  function step(xfStep, value, input) {
-    input = ensureConverted(input)
-    return xfStep(
-      value,
-      input[cError] === null ? callback(input[cValue]) : input,
-    )
-  }
-)
 
 export const mapByKey = (converterByKey, {other = functions.identity} = {}) => {
   // const remainingKeys = tr.into({}, map(([k]) => [k, true]), converterByKey)
@@ -42,43 +28,13 @@ export const mapByKey = (converterByKey, {other = functions.identity} = {}) => {
 export const mapKeyValue = (keyConverter, valueConverter) =>
   map(([key, value]) => [keyConverter(key), valueConverter(value)])
 
-export const pipe = (...converters) => {
-  const log = logging.createLog("pipe")
-  return (value) => converters.reduce((accumulator, converter, index) => {
-    if (!converter) {
-      throw new Error("Empty converter!")
-    }
-    log("index: %s, accumulator: %j", index, accumulator, converter)
-    accumulator = ensureConverted(accumulator)
-    if (accumulator[cError]) {
-      return accumulator
-    }
-    const result = ensureConverted(converter(accumulator[cValue]))
-    return result[cError] ? converted(value, result[cError]) : result
-  }, value)
-}
 
-export const transduce = (transducer, transformer) => (value) => {
-  if (value === null) {
-    return converted(null, null)
-  }
-  const output = tr.transduce(transducer, transformer, value)
-  return output[cError] === null ? output : converted(value, output[cError])
-}
-export const transduceArray = (transducer) => pipe(
-  simple.testArray,
-  transduce(transducer, new transformers.ConvertedArrayTransformer()),
-)
-export const transduceObject = (transducer) => pipe(
-  simple.testObject,
-  transduce(transducer, new transformers.ConvertedObjectTransformer()),
+export const pipe = (...converters) => whileSuccess(...converters.map(map))
+
+export const mapArray = (...converters) => transduceArray(pipe(...converters))
+
+export const mapObject = (keyConverter, valueConverter) => transduceObject(
+  mapKeyValue(map(keyConverter), map(valueConverter))
 )
 
-export const uniformArray = (...converters) => transduceArray(
-  tr.compose(...converters.map((converter) => map(converter)))
-)
-
-export const uniformObject = (keyConverter, valueConverter) =>
-  transduceObject(mapKeyValue(keyConverter, valueConverter))
-  
-export const structuredObject = (...args) => transduceObject(mapByKey(...args))
+export const mapObjectByKey = (converterByKey, options) => transduceObject(mapByKey(converterByKey, options))
