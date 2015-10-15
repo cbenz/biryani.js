@@ -26,12 +26,12 @@ localStorage.debug = ""
 
 // const transducer = tr.map(([key, value]) => {
 //   const converterByKey = {
-//     age: b.pipe(
+//     age: b.whileSuccessMap(
 //       b.testInteger,
 //       (value) => value >= 18,
 //     ),
 //     name: (value) => "Crazy " + value,
-//     likes: b.pipe(
+//     likes: b.whileSuccessMap(
 //       b.testArray,
 //       (value) => tr.transduce(
 //         tr.compose(
@@ -42,7 +42,7 @@ localStorage.debug = ""
 //         value,
 //       ),
 //     ),
-//     parents: b.pipe(
+//     parents: b.whileSuccessMap(
 //       b.testObject,
 //       (value) => tr.transduce(
 //         tr.map(
@@ -76,7 +76,7 @@ const converter = b.mapObjectByKey({
   //   [value],
   // ),
   // age: (value) => tr.transduce(
-  //     b.pipe(
+  //     b.whileSuccessMap(
   //       b.testInteger,
   //       b.test((value) => value >= 18, "Adult expected"),
   //     ),
@@ -84,23 +84,23 @@ const converter = b.mapObjectByKey({
   //   [value],
   // ),
   age: b.transduceValue(
-    b.pipe(
+    b.whileSuccessMap(
       b.testInteger,
       b.test((value) => value >= 18, "Adult expected"),
     ),
   ),
-  // name: b.pipe(
+  // name: b.whileSuccessMap(
   //   b.testString,
   //   (value) => "Crazy " + value,
   // ),
-  // name: b.pipe(
+  // name: b.whileSuccessMap(
   //   b.testString,
   //   (value) => "Crazy " + value,
   // ),
   // likes: b.uniformArray(
   //   b.test((value) => value.endsWith("ing"), "-ing suffix expected")
   // ),
-  // likes: b.pipe(
+  // likes: b.whileSuccessMap(
   //   b.testArray,
   //   tr.into([], tr.filter((value) => value.endsWith("ing"))),
   // ),
@@ -128,7 +128,7 @@ const converter = b.mapObjectByKey({
   //   ),
   // ),
   // likes: b.transduceArray(
-  //   b.pipe(
+  //   b.whileSuccessMap(
   //     b.test((value) => value.endsWith("ing"), "-ing suffix expected"),
   //     (value) => value + "-ding",
   //   ),
@@ -139,7 +139,7 @@ const converter = b.mapObjectByKey({
   //   [value],
   // ),
   // likes: (value) => b.transduceArray(
-  //   b.pipe(
+  //   b.whileSuccessMap(
   //     b.test((value) => value.endsWith("ing"), "-ing suffix expected"),
   //     (value) => value + "-ding",
   //   ),

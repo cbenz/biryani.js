@@ -1,5 +1,4 @@
 import {converted} from "../converted"
-import {pipe} from "./compound"
 import * as functions from "../functions"
 import * as logging from "../logging"
 
@@ -53,7 +52,7 @@ export const testNotNull = (value) => converted(value, value === null ? "Not nul
 
 export const testScalar = test(functions.isScalar, "Scalar expected")
 
-export const toInteger = (value) => functions.isInteger(value) ? converted(value) : pipe(testScalar, parseInt)(value)
+// export const toInteger = (value) => functions.isInteger(value) ? converted(value) : pipe(testScalar, parseInt)(value)
 
 
 // Debug converters

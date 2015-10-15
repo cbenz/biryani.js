@@ -29,9 +29,9 @@ export const mapKeyValue = (keyConverter, valueConverter) =>
   map(([key, value]) => [keyConverter(key), valueConverter(value)])
 
 
-export const pipe = (...converters) => whileSuccess(...converters.map(map))
+export const whileSuccessMap = (...converters) => whileSuccess(...converters.map(map))
 
-export const mapArray = (...converters) => transduceArray(pipe(...converters))
+export const mapArray = (...converters) => transduceArray(whileSuccessMap(...converters))
 
 export const mapObject = (keyConverter, valueConverter) => transduceObject(
   mapKeyValue(map(keyConverter), map(valueConverter))
