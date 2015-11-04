@@ -194,6 +194,7 @@ Again, the error is structured like the input value: we see that the error conce
 
 ## TODO
 
+* [ ] defer collections realization
 * [ ] defer errors (ie for i18n)
 
 ## API

@@ -1,6 +1,5 @@
 import {converted} from "../converted"
 import * as functions from "../functions"
-import * as logging from "../logging"
 
 
 // Converters
@@ -53,17 +52,18 @@ export const testNotNull = (value) => converted(value, value === null ? "Not nul
 export const testScalar = test(functions.isScalar, "Scalar expected")
 
 // export const toInteger = (value) => functions.isInteger(value) ? converted(value) : pipe(testScalar, parseInt)(value)
+// export const toInteger = (value) => functions.isInteger(value) ? converted(value) : pipe(testScalar, parseInt)(value)
 
 
 // Debug converters
 
+// Do not use arrow function to keep "this" binding.
 export function debug(value) {
   debugger
   return value
 }
 
-const logTap = logging.createLog("converters:tap")
-export function tap(value) {
-  logTap(value)
+export const tap = (interceptor) => (value) => {
+  interceptor(value)
   return value
 }

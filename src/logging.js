@@ -1,4 +1,6 @@
-import _createLog from "debug"
+import debug from "debug"
 
 
-export const createLog = (name) => _createLog("biryani.js:" + name)
+export const createLogger = (name) => debug("biryani.js:" + name)
+
+export const inspect = (logger) => (...args) => logger(...args.map(JSON.stringify))

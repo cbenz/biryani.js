@@ -1,3 +1,7 @@
+import * as tr from "transduce/core"
+import * as t from "transduce/transducers"
+
+
 // JavaScript helpers
 
 export const isArray = typeof Array.isArray === "function" ?
@@ -14,3 +18,16 @@ export const isString = (value) => typeof value === "string"
 export const add = (n) => (x) => x + n
 export const identity = (x) => x
 export const isInteger = Number.isInteger
+
+export const interpose = (separator, {wrap = false} = {}) => (coll) => {
+  let coll2 = tr.into([], t.interpose(separator), coll)
+  if (wrap) {
+    coll2 = [separator, ...coll2, separator]
+  }
+  return coll2
+}
+
+export const tap = (interceptor) => (value) => {
+  interceptor(value)
+  return value
+}

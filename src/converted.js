@@ -23,6 +23,9 @@ export class Converted {
     this[cError] = error
     this[cValue] = value
   }
+  error() {
+    return this[cError]
+  }
   value() {
     if (this[cError]) {
       throw new ConversionError(this)
@@ -30,14 +33,11 @@ export class Converted {
       return this[cValue]
     }
   }
-  valueWithoutErrorCheck() {
-    return this[cValue]
-  }
-  error() {
-    return this[cError]
-  }
   valueAndError() {
     return {value: this[cValue], error: this[cError]}
+  }
+  valueWithoutErrorCheck() {
+    return this[cValue]
   }
 }
 

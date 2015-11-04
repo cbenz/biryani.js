@@ -1,7 +1,10 @@
+import * as t from "transduce/transducers"
 import * as tr from "transduce/core"
 import * as util from "transduce/lib/util"
 
 import {converted, ensureConverted} from "./converted"
+import * as functions from "./functions"
+import * as logging from "./logging"
 import protocols from "./protocols"
 
 
@@ -37,6 +40,13 @@ export const composeWrappedBy = (transducer) => (...transducers) => tr.compose(.
 
 export const whileError = (...transducers) => composeWrappedBy(ifError)(...transducers)
 export const whileSuccess = (...transducers) => composeWrappedBy(ifSuccess)(...transducers)
+export const whileSuccessLog = (name) => (...transducers) => whileSuccess(
+  ...functions.interpose(
+    t.tap(logging.inspect(logging.createLogger(`whileSuccess:${name}`))),
+    {wrap: true},
+  )(transducers)
+)
+
 
 
 // Converted
@@ -118,3 +128,28 @@ export class ScalarValue {
 }
 
 export const scalarValue = new ScalarValue()
+
+
+// if-then-else
+
+export class IfThenElse {
+  constructor(predicate, thenTransformer, elseTransformer) {
+    this.predicate = predicate
+    this.thenTransformer = thenTransformer
+    this.elseTransformer = elseTransformer
+  }
+  [tInit]() {
+    return null
+  }
+  [tResult](value) {
+    return value
+  }
+  [tStep](value, input) {
+    return this.predicate(input) ?
+      this.thenTransformer[tStep](value, input) :
+      this.elseTransformer[tStep](value, input)
+  }
+}
+
+// export const ifThenElse = (predicate, thenTransformer, elseTransformer) => (transducer) =>
+//   new IfThenElse(predicate, thenTransformer, elseTransformer)

@@ -1,15 +1,20 @@
-import {map} from "transduce/transducers"
+import * as t from "transduce/transducers"
+import * as tr from "transduce/core"
 
-// import * as logging from "../logging"
-// import * as simple from "./simple"
+import {converted, ensureConverted} from "../converted"
 import {transduceArray, transduceObject} from "../transduce"
 import {whileSuccess} from "../transducers"
 import * as functions from "../functions"
+import * as logging from "../logging"
+import protocols from "../protocols"
+
+
+const {error: cError, value: cValue} = protocols.converter
 
 
 export const mapByKey = (converterByKey, {other = functions.identity} = {}) => {
   // const remainingKeys = tr.into({}, map(([k]) => [k, true]), converterByKey)
-  return map(([key, value]) => {
+  return t.map(([key, value]) => {
     let converter = converterByKey[key]
     if (converter) {
       // remainingKeys[key] = false
@@ -26,15 +31,29 @@ export const mapByKey = (converterByKey, {other = functions.identity} = {}) => {
 }
 
 export const mapKeyValue = (keyConverter, valueConverter) =>
-  map(([key, value]) => [keyConverter(key), valueConverter(value)])
+  t.map(([key, value]) => [t.map(keyConverter(key)), t.map(valueConverter(value))])
 
+export const whileSuccessMap = (...converters) => whileSuccess(...converters.map(t.map))
 
-export const whileSuccessMap = (...converters) => whileSuccess(...converters.map(map))
+export const uniformArray = (...converters) => transduceArray(whileSuccessMap(...converters))
 
-export const mapArray = (...converters) => transduceArray(whileSuccessMap(...converters))
-
-export const mapObject = (keyConverter, valueConverter) => transduceObject(
-  mapKeyValue(map(keyConverter), map(valueConverter))
+export const uniformObject = (keyConverter, valueConverter) => transduceObject(
+  mapKeyValue(keyConverter, valueConverter)
 )
 
-export const mapObjectByKey = (converterByKey, options) => transduceObject(mapByKey(converterByKey, options))
+export const structuredObject = (converterByKey, options) => transduceObject(mapByKey(converterByKey, options))
+
+export const pipe = (...converters) => (value) => {
+  value = ensureConverted(value)
+  return tr.reduce((accumulatedValue, converter) => {
+    const output = ensureConverted(converter(accumulatedValue[cValue]))
+    return output[cError] === null ? output : tr.reduced(converted(value[cValue], output[cError]))
+  }, value, converters)
+}
+
+export const pipeLog = (name) => {
+  const logger = logging.createLogger(`pipe:${name}`)
+  const tapLog = functions.tap(logging.inspect(logger))
+  return (...converters) => pipe(...functions.interpose(tapLog, {wrap: true})(converters))
+
+}
